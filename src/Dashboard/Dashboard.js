@@ -11,6 +11,8 @@ import { db } from "../firebase-config";
 function Dashboard() {
   const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
+  const [tickets, setTickets] = useState([]);
+  const [spendTickets, setSpendTickets] = useState([]);
 
   useEffect(() => {
     const loggedIn = localStorage.getItem("isLoggedInAdmin");
@@ -34,7 +36,6 @@ function Dashboard() {
       setUploading(false);
     }
   };
-  const [tickets, setTickets] = useState([]);
   useEffect(() => {
     gettickets();
   }, []);
@@ -63,7 +64,6 @@ function Dashboard() {
     gettickets();
   };
 
-  const [spendTickets, setSpendTickets] = useState([]);
 
   const getSpendTickets = async () => {
     const data = await getDocs(collection(db, "spendTickets"));
@@ -169,8 +169,8 @@ function Dashboard() {
             </tr>
           </thead>
           <tbody>
-            {tickets.map((ticketDoc) => {
-              const ticket = ticketDoc.data(); // ✅ Extract plain object
+            {spendTickets.map((ticketDoc) => {
+              const ticket = ticketDoc; // ✅ Extract plain object
               return (
                 <tr key={ticketDoc.id}>
                   <td>{ticket.userId?.userId}</td>
