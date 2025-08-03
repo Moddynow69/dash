@@ -67,8 +67,8 @@ function Dashboard() {
 
   const getSpendTickets = async () => {
     const data = await getDocs(collection(db, "spendTickets"));
+    console.log(data.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
     setSpendTickets(data.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
-    console.log(data.docs);
   };
 
   useEffect(() => {
@@ -83,12 +83,22 @@ function Dashboard() {
       const currentAmount = userDoc.data().amount || 0;
       if (currentAmount >= totalAmount) {
         await updateDoc(userDocRef, { amount: currentAmount - totalAmount });
-        await deleteDoc(doc(db, "spendTickets", id));
+
+        const ticketRef = doc(db, "spendTickets", id);
+        await updateDoc(ticketRef, { status: "approved" });
+
         alert("Spend approved and amount deducted!");
       } else {
         alert("Insufficient balance.");
       }
     }
+    getSpendTickets();
+  };
+
+  const rejectSpend = async (id) => {
+    const ticketRef = doc(db, "spendTickets", id);
+    await updateDoc(ticketRef, { status: "rejected" });
+    alert("Spend request rejected.");
     getSpendTickets();
   };
 
@@ -164,32 +174,54 @@ function Dashboard() {
               <th>#</th>
               <th>User</th>
               <th>Items</th>
-              <th>Amount</th>
+              <th>Subtotal</th>
+              <th>Commission</th>
+              <th>Total</th>
+              <th>Status</th>
               <th>Action</th>
             </tr>
           </thead>
+
           <tbody>
-            {spendTickets.map((ticketDoc) => {
-              const ticket = ticketDoc; // ✅ Extract plain object
+            {spendTickets.map((ticketDoc, index) => {
               return (
                 <tr key={ticketDoc.id}>
-                  <td>{ticket.userId?.userId}</td>
+                  <td>{index + 1}</td>
+                  <td>{ticketDoc.userId}</td>
                   <td>
-                    {ticket.items?.map((item, idx) => (
+                    {ticketDoc.items?.map((item, idx) => (
                       <div key={idx}>
                         {item.name} - ₹{item.price}
                       </div>
                     ))}
                   </td>
-                  <td>₹{ticket.subtotal}</td>
-                  <td>₹{ticket.commission}</td>
-                  <td>₹{ticket.totalAmount}</td>
-                  <td>{ticket.status}</td>
+                  <td>₹{ticketDoc.subtotal}</td>
+                  <td>₹{ticketDoc.commission}</td>
+                  <td>₹{ticketDoc.totalAmount}</td>
+                  <td>{ticketDoc.status}</td>
+                  <td>
+                    <Button
+                      variant="success"
+                      size="sm"
+                      onClick={() => approveSpend(ticketDoc.id, ticketDoc.userId, ticketDoc.totalAmount)}
+                      disabled={ticketDoc.status === "approved" || ticketDoc.status === "rejected"}
+                    >
+                      Approve
+                    </Button>{" "}
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => rejectSpend(ticketDoc.id)}
+                      disabled={ticketDoc.status === "approved" || ticketDoc.status === "rejected"}
+                    >
+                      Reject
+                    </Button>
+                  </td>
                 </tr>
               );
             })}
-
           </tbody>
+
         </Table>
 
       </Container>

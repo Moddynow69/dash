@@ -4,7 +4,7 @@ import { Form, Button } from "react-bootstrap";
 import { db } from "../firebase-config";
 import { addDoc, collection } from "firebase/firestore";
 
-const Spend = (userId) => {
+const Spend = ({userId}) => {
   const [items, setItems] = useState([{ name: "", price: 0 }]);
 
   const handleItemChange = (index, key, value) => {
@@ -42,7 +42,7 @@ const Spend = (userId) => {
     }
 
     await addDoc(collection(db, "spendTickets"), {
-      userId,
+      userId : userId,
       items,
       subtotal: getSubtotal(),
       commission: getCommission(),
