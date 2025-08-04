@@ -18,12 +18,6 @@ function Dashboard() {
   const [sending, setSending] = useState(false);
 
 
-  useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedInAdmin");
-    if (loggedIn !== "true") {
-      navigate("/");
-    }
-  }, [navigate]);
 
   const handleUpload = async (e) => {
     const file = e.target.files[0];
@@ -40,12 +34,7 @@ function Dashboard() {
       setUploading(false);
     }
   };
-  useEffect(() => {
-    gettickets();
-  }, []);
-  setInterval(() => {
-    gettickets();
-  }, 300000);
+
   const gettickets = async () => {
     setLoadingTickets(true);
     const data = await TicketDataSerivce.getAll();
@@ -57,6 +46,7 @@ function Dashboard() {
 
   const getSpendTickets = async () => {
     const data = await getDocs(collection(db, "spendTickets"));
+    console.log(data.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
     setSpendTickets(data.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
       .sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds)
@@ -89,9 +79,6 @@ function Dashboard() {
 
   };
 
-  useEffect(() => {
-    getSpendTickets();
-  }, []);
 
   const approveSpend = async (id, userId, totalAmount) => {
     setSending(true);
@@ -146,7 +133,22 @@ function Dashboard() {
     setSending(false);
   };
 
+  useEffect(() => {
+    getSpendTickets();
+    gettickets();
+  }, []);
+  setInterval(() => {
+    gettickets();
+    getSpendTickets();
+    console.log(spendTickets, tickets);
+  }, 300000);
 
+  useEffect(() => {
+    const loggedIn = localStorage.getItem("isLoggedInAdmin");
+    if (loggedIn !== "true") {
+      navigate("/");
+    }
+  }, [navigate]);
   return (
     <>
       <Navbar bg="dark" variant="dark" className="header">
@@ -232,7 +234,7 @@ function Dashboard() {
           <thead>
             <tr>
               <th>#</th>
-              <th>User</th>
+              <th>Account Name</th>
               <th>Items</th>
               <th>Subtotal</th>
               <th>Commission</th>
@@ -249,13 +251,13 @@ function Dashboard() {
                 return (
                   <tr key={ticketDoc.id}>
                     <td>{index + 1}</td>
-                    <td>{ticketDoc.userId}</td>
+                    <td>{typeof (ticketDoc.userId) === "string" ? ticketDoc.userId : ticketDoc.userId.userId}</td>
                     <td>
-                      {
+                      {ticketDoc.item && (
                         <div>
                           {ticketDoc.item.name}
                         </div>
-                      }
+                      )}
                     </td>
                     <td>${ticketDoc.subtotal}</td>
                     <td>${ticketDoc.commission}</td>

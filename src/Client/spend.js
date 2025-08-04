@@ -51,21 +51,23 @@ const Spend = ({ userId, balance }) => {
     }
     setLoading(true);
     items.forEach(async (item) => {
-    try {
-      await addDoc(collection(db, "spendTickets"), {
-        userId,
-        item,
-        subtotal: item.price,
-        commission: item.price * 0.04,
-        totalAmount: item.price + item.price * 0.04,
-        status: "pending",
-        createdAt: serverTimestamp(),
-      });
-      alert("Spend request submitted!");
-      setItems([{ name: "", price: 0 }]);
-    } catch (err) {
-      alert("Submission failed.");
-    }})
+      try {
+        await addDoc(collection(db, "spendTickets"), {
+          userId: userId,
+          item,
+          subtotal: item.price,
+          commission: item.price * 0.04,
+          totalAmount: item.price + item.price * 0.04,
+          status: "pending",
+          createdAt: serverTimestamp(),
+        });
+      } catch (err) {
+        alert("Submission failed.");
+        return;
+      }
+    })
+    alert("Spend request submitted!");
+    setItems([{ name: "", price: 0 }]);
     setLoading(false);
   };
 

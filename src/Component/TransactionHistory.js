@@ -27,7 +27,6 @@ const TransactionHistory = ({ userId, isAdmin }) => {
         <thead>
           <tr>
             <th>#</th>
-            <th>User</th>
             <th>Type</th>
             <th>Amount</th>
             <th>Status</th>
@@ -38,7 +37,6 @@ const TransactionHistory = ({ userId, isAdmin }) => {
           {transactions.map((tx, index) => (
             <tr key={tx.id}>
               <td>{index + 1}</td>
-              <td>{tx.userId}</td>
               <td>{tx.type}</td>
               <td>${tx.amount}</td>
               <td>
