@@ -101,7 +101,7 @@ function Client() {
           </Navbar.Brand>
         </Container>
       </Navbar>
-      <Container style={{ width: "600px" }}>
+      <Container style={{ maxWidth: "600px", marginTop: "20px" }}>
         <Row>
           <Col>
             <div className="p-4 box">
@@ -116,16 +116,20 @@ function Client() {
               )}
 
               {qrUrl && (
-                <img
-                  src={qrUrl}
-                  alt="QR Code"
-                  style={{ width: "100%", height: "auto", marginBottom: "10px" }}
-                />
+                <div className="text-center mb-3">
+                  <img
+                    src={qrUrl}
+                    alt="QR Code"
+                    className="img-fluid"
+                    style={{ maxWidth: "300px" }}
+                  />
+                </div>
               )}
+
               <Form onSubmit={handleSubmit}>
-                <Form.Group className="mb-3">
+                <Form.Group>
                   <InputGroup>
-                    <InputGroup.Text>Ammount</InputGroup.Text>
+                    <InputGroup.Text>Amount</InputGroup.Text>
                     <Form.Control
                       type="text"
                       value={amount}
@@ -134,7 +138,8 @@ function Client() {
                     />
                   </InputGroup>
                 </Form.Group>
-                <Form.Group className="mb-3">
+
+                <Form.Group>
                   <InputGroup>
                     <InputGroup.Text>Transaction ID</InputGroup.Text>
                     <Form.Control
@@ -145,7 +150,8 @@ function Client() {
                     />
                   </InputGroup>
                 </Form.Group>
-                <Form.Group className="mb-3">
+
+                <Form.Group>
                   <InputGroup>
                     <InputGroup.Text>Payment Proof</InputGroup.Text>
                     <Form.Control
@@ -156,18 +162,23 @@ function Client() {
                     />
                   </InputGroup>
                 </Form.Group>
-                <div className="d-grid gap-2">
-                  <Button type="submit" disabled={loading}>
-                    {loading ? "Processing..." : "Add Money"}
+
+                <div className="d-grid gap-2 mt-3">
+                  <Button type="submit" variant="primary" className="mt-3"
+                    disabled={loading}
+                  >
+                    Add Money
                   </Button>
                 </div>
               </Form>
             </div>
           </Col>
         </Row>
-        <Spend userId={userId} balance={balance} />
-        <TransactionHistory userId={userId} isAdmin={false}  />
+
+        <Spend userId={userId} />
+        <TransactionHistory userId={userId} isAdmin={false} />
       </Container>
+
     </>
   );
 }

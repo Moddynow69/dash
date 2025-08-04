@@ -4,7 +4,7 @@ import { Table, Button, Container, Navbar, Row, Col, Spinner } from "react-boots
 import QrService from "../services/qr.services";
 import TicketDataSerivce from "../services/ticket.services";
 import "../App.css";
-import { doc, getDoc, setDoc, updateDoc, getDocs, collection, deleteDoc, addDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, getDocs, collection, addDoc } from "firebase/firestore";
 import { db } from "../firebase-config";
 import TransactionHistory from "../Component/TransactionHistory";
 
@@ -74,9 +74,7 @@ function Dashboard() {
       status: userId && amount ? "approved" : "rejected",
       createdAt: new Date(),
     });
-
     gettickets();
-
   };
 
 
@@ -227,66 +225,70 @@ function Dashboard() {
                 })}
               </tbody>
             </Table>
+
+            <div className="p-4 box mt-4">
+
+              <h5>Spend Requests</h5>
+              <Table striped bordered hover size="sm">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Account Name</th>
+                    <th>Items</th>
+                    <th>Subtotal</th>
+                    <th>Commission</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {spendTickets
+                    .filter(ticket => ticket.status === "pending")
+                    .map((ticketDoc, index) => {
+                      return (
+                        <tr key={ticketDoc.id}>
+                          <td>{index + 1}</td>
+                          <td>{typeof (ticketDoc.userId) === "string" ? ticketDoc.userId : ticketDoc.userId.userId}</td>
+                          <td>
+                            {ticketDoc.item && (
+                              <div>
+                                {ticketDoc.item.name}
+                              </div>
+                            )}
+                          </td>
+                          <td>${ticketDoc.subtotal}</td>
+                          <td>${ticketDoc.commission}</td>
+                          <td>${ticketDoc.totalAmount}</td>
+                          <td>{ticketDoc.status}</td>
+                          <td>{ticketDoc.createdAt?.toDate().toLocaleString() || "—"}</td>
+                          <td>
+                            <Button
+                              variant="success"
+                              size="sm"
+                              onClick={() => approveSpend(ticketDoc.id, ticketDoc.userId, ticketDoc.totalAmount)}
+                              disabled={sending}
+                            >
+                              Approve
+                            </Button>{" "}
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => rejectSpend(ticketDoc.id)}
+                              disabled={sending}
+                            >
+                              Reject
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </Table>
+            </div>
           </Col>
         </Row>
-        <h5>Spend Requests</h5>
-        <Table striped bordered hover size="sm">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Account Name</th>
-              <th>Items</th>
-              <th>Subtotal</th>
-              <th>Commission</th>
-              <th>Total</th>
-              <th>Status</th>
-              <th>Date</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {spendTickets
-              .filter(ticket => ticket.status === "pending")
-              .map((ticketDoc, index) => {
-                return (
-                  <tr key={ticketDoc.id}>
-                    <td>{index + 1}</td>
-                    <td>{typeof (ticketDoc.userId) === "string" ? ticketDoc.userId : ticketDoc.userId.userId}</td>
-                    <td>
-                      {ticketDoc.item && (
-                        <div>
-                          {ticketDoc.item.name}
-                        </div>
-                      )}
-                    </td>
-                    <td>${ticketDoc.subtotal}</td>
-                    <td>${ticketDoc.commission}</td>
-                    <td>${ticketDoc.totalAmount}</td>
-                    <td>{ticketDoc.status}</td>
-                    <td>{ticketDoc.createdAt?.toDate().toLocaleString() || "—"}</td>
-                    <td>
-                      <Button
-                        variant="success"
-                        size="sm"
-                        onClick={() => approveSpend(ticketDoc.id, ticketDoc.userId, ticketDoc.totalAmount)}
-                        disabled={sending}
-                      >
-                        Approve
-                      </Button>{" "}
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => rejectSpend(ticketDoc.id)}
-                        disabled={sending}
-                      >
-                        Reject
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-          </tbody>
-        </Table>
         <TransactionHistory isAdmin={true} />
       </Container>
     </>

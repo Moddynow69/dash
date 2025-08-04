@@ -36,6 +36,8 @@ const Spend = ({ userId, balance }) => {
   };
 
   const handleSubmit = async (e) => {
+    setLoading(true);
+    e.stopPropagation();
     e.preventDefault();
     if (!userId || items.length === 0 || items.some(item => !item.name || item.price <= 0)) {
       alert("Please fill all fields correctly.");
@@ -73,49 +75,52 @@ const Spend = ({ userId, balance }) => {
 
 
   return (
-    <div className="container mt-4">
-      <h4>Spend Money on Services</h4>
-      <Form onSubmit={handleSubmit}>
-        {items.map((item, index) => (
-          <div key={index} className="d-flex gap-2 mt-2">
-            <Form.Control
-              type="text"
-              placeholder="Item name"
-              value={item.name}
-              onChange={(e) => handleItemChange(index, "name", e.target.value)}
-              required
-            />
-            <Form.Control
-              type="number"
-              placeholder="Amount"
-              value={item.price}
-              onChange={(e) => handleItemChange(index, "price", e.target.value)}
-              required
-              min={1}
-            />
-            {items.length > 1 && (
-              <Button variant="danger" onClick={() => removeItem(index)}>
-                ✕
-              </Button>
-            )}
-          </div>
-        ))}
+    <div className="p-4 box mt-5">
+  <h4 className="mb-4">Spend Money on Services</h4>
+  <Form onSubmit={handleSubmit}>
+    {items.map((item, index) => (
+      <div key={index} className="d-flex gap-2 align-items-center mb-2">
+        <Form.Control
+          type="text"
+          placeholder="Item name"
+          value={item.name}
+          onChange={(e) => handleItemChange(index, "name", e.target.value)}
+          required
+        />
+        <Form.Control
+          type="number"
+          placeholder="Amount"
+          value={item.price}
+          onChange={(e) => handleItemChange(index, "price", e.target.value)}
+          required
+          min={1}
+        />
+        {items.length > 1 && (
+          <Button variant="danger" onClick={() => removeItem(index)}>
+            ✕
+          </Button>
+        )}
+      </div>
+    ))}
 
-        <Button variant="secondary" className="mt-2" onClick={addItem}>
-          + Add Item
-        </Button>
+    <Button variant="outline-primary" className="mb-3" onClick={addItem}>
+      + Add Item
+    </Button>
 
-        <div className="mt-3">
-          <p>Subtotal: ${getSubtotal()}</p>
-          <p>Commission (4%): ${getCommission()}</p>
-          <h5>Total Deduction: ${getTotalAmount()}</h5>
-        </div>
-
-        <Button type="submit" className="mt-3" variant="primary" disabled={loading}>
-          {loading ? "Submitting..." : "Submit Request"}
-        </Button>
-      </Form>
+    <div>
+      <p>Subtotal: ₹{getSubtotal()}</p>
+      <p>Commission (4%): ₹{getCommission()}</p>
+      <h5>Total Deduction: ₹{getTotalAmount()}</h5>
     </div>
+
+    <Button type="submit" variant="primary" className="mt-3"
+      disabled={loading || getTotalAmount() <= 0 || getTotalAmount() > balance}
+    >
+      Submit Request
+    </Button>
+  </Form>
+</div>
+
   );
 };
 
