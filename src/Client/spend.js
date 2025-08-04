@@ -2,10 +2,11 @@
 import React, { useState } from "react";
 import { Form, Button } from "react-bootstrap";
 import { db } from "../firebase-config";
-import { addDoc, collection } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
-const Spend = ({userId}) => {
+const Spend = ({ userId }) => {
   const [items, setItems] = useState([{ name: "", price: 0 }]);
+  const [loading, setLoading] = useState(false);
 
   const handleItemChange = (index, key, value) => {
     const updatedItems = [...items];
@@ -41,18 +42,25 @@ const Spend = ({userId}) => {
       return;
     }
 
-    await addDoc(collection(db, "spendTickets"), {
-      userId : userId,
-      items,
-      subtotal: getSubtotal(),
-      commission: getCommission(),
-      totalAmount: getTotalAmount(),
-      status: "pending",
-    });
-
-    alert("Spend request submitted successfully!");
-    setItems([{ name: "", price: 0 }]);
+    setLoading(true);
+    try {
+      await addDoc(collection(db, "spendTickets"), {
+        userId,
+        items,
+        subtotal: getSubtotal(),
+        commission: getCommission(),
+        totalAmount: getTotalAmount(),
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
+      alert("Spend request submitted!");
+      setItems([{ name: "", price: 0 }]);
+    } catch (err) {
+      alert("Submission failed.");
+    }
+    setLoading(false);
   };
+
 
   return (
     <div className="container mt-4">
@@ -88,13 +96,13 @@ const Spend = ({userId}) => {
         </Button>
 
         <div className="mt-3">
-          <p>Subtotal: ₹{getSubtotal()}</p>
-          <p>Commission (4%): ₹{getCommission()}</p>
-          <h5>Total Deduction: ₹{getTotalAmount()}</h5>
+          <p>Subtotal: ${getSubtotal()}</p>
+          <p>Commission (4%): ${getCommission()}</p>
+          <h5>Total Deduction: ${getTotalAmount()}</h5>
         </div>
 
-        <Button type="submit" className="mt-3" variant="primary">
-          Submit Request
+        <Button type="submit" className="mt-3" variant="primary" disabled={loading}>
+          {loading ? "Submitting..." : "Submit Request"}
         </Button>
       </Form>
     </div>

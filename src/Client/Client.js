@@ -2,10 +2,11 @@ import "../App.css";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Form, Alert, InputGroup, Button, Container, Navbar, Row, Col } from "react-bootstrap";
-import { collection, addDoc, getDoc, doc } from "firebase/firestore";
+import { collection, addDoc, getDoc, doc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase-config";
 import QrService from "../services/qr.services";
 import Spend from "./spend";
+import TransactionHistory from "../Component/TransactionHistory";
 
 function Client() {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ function Client() {
   const [amount, setAmount] = useState("");
   const [qrUrl, setQrUrl] = useState("");
   const [message, setMessage] = useState({ error: false, msg: "" });
-
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const checkLoginAndFetchBalance = async () => {
@@ -36,7 +37,7 @@ function Client() {
     };
     checkLoginAndFetchBalance();
   }, [navigate, userId]);
-  
+
   useEffect(() => {
     const getQr = async () => {
       const url = await QrService.fetchQrImage();
@@ -48,37 +49,40 @@ function Client() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!paymentProof) return;
-
+    setLoading(true);
     const reader = new FileReader();
     reader.onloadend = async () => {
-      const base64 = reader.result.split(",")[1];
+      try {
+        const base64 = reader.result.split(",")[1];
+        const formData = new FormData();
+        formData.append("image", base64);
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=d7478228aeaffe11bc627055c6e5b3c0`, {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        const proofUrl = data?.data?.url;
+        await addDoc(collection(db, "tickets"), {
+          userId,
+          transactionId,
+          amount,
+          paymentProof: proofUrl,
+          createdAt: serverTimestamp(),
+        });
 
-      const formData = new FormData();
-      formData.append("image", base64);
-
-      const res = await fetch(`https://api.imgbb.com/1/upload?key=d7478228aeaffe11bc627055c6e5b3c0`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-      const proofUrl = data?.data?.url;
-
-      await addDoc(collection(db, "tickets"), {
-        userId,
-        transactionId,
-        amount,
-        paymentProof: proofUrl,
-      });
-
-      setMessage({ error: false, msg: "Ticket raised , Money will be added to your account after verification." });
-      setUserId("");
-      setTransactionId("");
-      setPaymentProof("");
+        setMessage({ error: false, msg: "Ticket raised. Money will be added after verification." });
+        setTransactionId("");
+        setPaymentProof("");
+        setAmount("");
+      } catch (err) {
+        setMessage({ error: true, msg: "Something went wrong!" });
+      }
+      setLoading(false);
     };
 
     reader.readAsDataURL(paymentProof);
   };
+
 
   return (
     <>
@@ -112,9 +116,7 @@ function Client() {
                   style={{ width: "100%", height: "auto", marginBottom: "10px" }}
                 />
               )}
-
               <Form onSubmit={handleSubmit}>
-
                 <Form.Group className="mb-3">
                   <InputGroup>
                     <InputGroup.Text>Ammount</InputGroup.Text>
@@ -126,7 +128,6 @@ function Client() {
                     />
                   </InputGroup>
                 </Form.Group>
-
                 <Form.Group className="mb-3">
                   <InputGroup>
                     <InputGroup.Text>Transaction ID</InputGroup.Text>
@@ -138,7 +139,6 @@ function Client() {
                     />
                   </InputGroup>
                 </Form.Group>
-
                 <Form.Group className="mb-3">
                   <InputGroup>
                     <InputGroup.Text>Payment Proof</InputGroup.Text>
@@ -150,15 +150,17 @@ function Client() {
                     />
                   </InputGroup>
                 </Form.Group>
-
                 <div className="d-grid gap-2">
-                  <Button type="submit">Add Money</Button>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? "Processing..." : "Add Money"}
+                  </Button>
                 </div>
               </Form>
             </div>
           </Col>
         </Row>
-        <Spend userId={userId}/>
+        <Spend userId={userId} />
+        <TransactionHistory userId={userId} isAdmin={false} />
       </Container>
     </>
   );

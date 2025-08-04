@@ -1,11 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Table, Button, Container, Navbar, Row, Col } from "react-bootstrap";
+import { Table, Button, Container, Navbar, Row, Col, Spinner } from "react-bootstrap";
 import QrService from "../services/qr.services";
 import TicketDataSerivce from "../services/ticket.services";
 import "../App.css";
-import { doc, getDoc, setDoc, updateDoc, getDocs, collection, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, getDocs, collection, deleteDoc, addDoc } from "firebase/firestore";
 import { db } from "../firebase-config";
+import TransactionHistory from "../Component/TransactionHistory";
 
 
 function Dashboard() {
@@ -13,6 +14,8 @@ function Dashboard() {
   const [uploading, setUploading] = useState(false);
   const [tickets, setTickets] = useState([]);
   const [spendTickets, setSpendTickets] = useState([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+
 
   useEffect(() => {
     const loggedIn = localStorage.getItem("isLoggedInAdmin");
@@ -43,10 +46,22 @@ function Dashboard() {
     gettickets();
   }, 300000);
   const gettickets = async () => {
+    setLoadingTickets(true);
     const data = await TicketDataSerivce.getAll();
-    console.log(data.docs);
-    setTickets(data.docs.map((doc) => ({ ...doc.data(), id: doc.id })));
+    setTickets(data.docs
+      .map((doc) => ({ ...doc.data(), id: doc.id }))
+      .sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds)
+    ); setLoadingTickets(false);
   };
+
+  const getSpendTickets = async () => {
+    const data = await getDocs(collection(db, "spendTickets"));
+    setSpendTickets(data.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds)
+    );
+  };
+
 
   const deleteHandler = async (id, userId, amount) => {
     if (userId && amount) {
@@ -61,14 +76,15 @@ function Dashboard() {
     }
 
     await TicketDataSerivce.remove(id);
+    await addDoc(collection(db, "transactions"), {
+      userId,
+      type: "add",
+      amount: Number(amount),
+      status: userId && amount ? "approved" : "rejected",
+      createdAt: new Date(),
+    });
+
     gettickets();
-  };
-
-
-  const getSpendTickets = async () => {
-    const data = await getDocs(collection(db, "spendTickets"));
-    console.log(data.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
-    setSpendTickets(data.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
   };
 
   useEffect(() => {
@@ -87,6 +103,15 @@ function Dashboard() {
         const ticketRef = doc(db, "spendTickets", id);
         await updateDoc(ticketRef, { status: "approved" });
 
+        await addDoc(collection(db, "transactions"), {
+          userId,
+          type: "spend",
+          amount: totalAmount,
+          status: "approved",
+          createdAt: new Date(),
+        });
+
+
         alert("Spend approved and amount deducted!");
       } else {
         alert("Insufficient balance.");
@@ -95,12 +120,26 @@ function Dashboard() {
     getSpendTickets();
   };
 
+
   const rejectSpend = async (id) => {
     const ticketRef = doc(db, "spendTickets", id);
     await updateDoc(ticketRef, { status: "rejected" });
+
+    const ticketSnapshot = await getDoc(ticketRef);
+    const data = ticketSnapshot.data();
+
+    await addDoc(collection(db, "transactions"), {
+      userId: data.userId,
+      type: "spend",
+      amount: data.totalAmount,
+      status: "rejected",
+      createdAt: new Date(),
+    });
+
     alert("Spend request rejected.");
     getSpendTickets();
   };
+
 
   return (
     <>
@@ -113,7 +152,7 @@ function Dashboard() {
       <Container className="my-4">
         <h5>Upload QR Code Image</h5>
         <input type="file" accept="image/*" onChange={handleUpload} />
-        {uploading && <p>Uploading to ImgBB...</p>}
+        {uploading && <Spinner animation="border" size="sm" />}
       </Container>
 
       <Container>
@@ -124,6 +163,11 @@ function Dashboard() {
                 Refresh List
               </Button>
             </div>
+            {loadingTickets && (
+              <div className="my-2">
+                <Spinner animation="border" size="sm" /> Loading tickets...
+              </div>
+            )}
             <Table striped bordered hover size="sm">
               <thead>
                 <tr>
@@ -132,6 +176,7 @@ function Dashboard() {
                   <th>Amount</th>
                   <th>Transaction ID</th>
                   <th>Payment Proof</th>
+                  <th>Date</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -144,6 +189,7 @@ function Dashboard() {
                       <td>{doc.amount}</td>
                       <td>{doc.transactionId}</td>
                       <td><img onClick={() => window.open(doc.paymentProof, "_blank")} src={doc.paymentProof} alt="Payment Proof" style={{ width: "100px", height: "auto" }} /></td>
+                      <td>{doc.createdAt?.toDate().toLocaleString() || "—"}</td>
                       <td>
                         <Button
                           variant="secondary"
@@ -178,52 +224,54 @@ function Dashboard() {
               <th>Commission</th>
               <th>Total</th>
               <th>Status</th>
+              <th>Date</th>
               <th>Action</th>
             </tr>
           </thead>
-
           <tbody>
-            {spendTickets.map((ticketDoc, index) => {
-              return (
-                <tr key={ticketDoc.id}>
-                  <td>{index + 1}</td>
-                  <td>{ticketDoc.userId}</td>
-                  <td>
-                    {ticketDoc.items?.map((item, idx) => (
-                      <div key={idx}>
-                        {item.name} - ₹{item.price}
-                      </div>
-                    ))}
-                  </td>
-                  <td>₹{ticketDoc.subtotal}</td>
-                  <td>₹{ticketDoc.commission}</td>
-                  <td>₹{ticketDoc.totalAmount}</td>
-                  <td>{ticketDoc.status}</td>
-                  <td>
-                    <Button
-                      variant="success"
-                      size="sm"
-                      onClick={() => approveSpend(ticketDoc.id, ticketDoc.userId, ticketDoc.totalAmount)}
-                      disabled={ticketDoc.status === "approved" || ticketDoc.status === "rejected"}
-                    >
-                      Approve
-                    </Button>{" "}
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => rejectSpend(ticketDoc.id)}
-                      disabled={ticketDoc.status === "approved" || ticketDoc.status === "rejected"}
-                    >
-                      Reject
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
+            {spendTickets
+              .filter(ticket => ticket.status === "pending")
+              .map((ticketDoc, index) => {
+                return (
+                  <tr key={ticketDoc.id}>
+                    <td>{index + 1}</td>
+                    <td>{ticketDoc.userId}</td>
+                    <td>
+                      {ticketDoc.items?.map((item, idx) => (
+                        <div key={idx}>
+                          {item.name} - ${item.price}
+                        </div>
+                      ))}
+                    </td>
+                    <td>${ticketDoc.subtotal}</td>
+                    <td>${ticketDoc.commission}</td>
+                    <td>${ticketDoc.totalAmount}</td>
+                    <td>{ticketDoc.status}</td>
+                    <td>{ticketDoc.createdAt?.toDate().toLocaleString() || "—"}</td>
+                    <td>
+                      <Button
+                        variant="success"
+                        size="sm"
+                        onClick={() => approveSpend(ticketDoc.id, ticketDoc.userId, ticketDoc.totalAmount)}
+                        disabled={ticketDoc.status === "approved" || ticketDoc.status === "rejected"}
+                      >
+                        Approve
+                      </Button>{" "}
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => rejectSpend(ticketDoc.id)}
+                        disabled={ticketDoc.status === "approved" || ticketDoc.status === "rejected"}
+                      >
+                        Reject
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
-
         </Table>
-
+        <TransactionHistory isAdmin={true} />
       </Container>
     </>
   );
