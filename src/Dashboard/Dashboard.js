@@ -78,7 +78,7 @@ function Dashboard() {
   };
 
 
-  const approveSpend = async (id, userId, totalAmount) => {
+  const approveSpend = async (id, userId, totalAmount, itemName) => {
     setSending(true);
     const userDocRef = doc(db, "accounts", userId);
     const userDoc = await getDoc(userDocRef);
@@ -94,6 +94,7 @@ function Dashboard() {
         await addDoc(collection(db, "transactions"), {
           userId,
           type: "spend",
+          itemName: itemName,
           amount: totalAmount,
           status: "approved",
           createdAt: new Date(),
@@ -110,7 +111,7 @@ function Dashboard() {
   };
 
 
-  const rejectSpend = async (id) => {
+  const rejectSpend = async (id, itemName) => {
     setSending(true);
     const ticketRef = doc(db, "spendTickets", id);
     await updateDoc(ticketRef, { status: "rejected" });
@@ -121,6 +122,7 @@ function Dashboard() {
     await addDoc(collection(db, "transactions"), {
       userId: data.userId,
       type: "spend",
+      itemName: itemName,
       amount: data.totalAmount,
       status: "rejected",
       createdAt: new Date(),
@@ -267,7 +269,7 @@ function Dashboard() {
                             <Button
                               variant="success"
                               size="sm"
-                              onClick={() => approveSpend(ticketDoc.id, ticketDoc.userId, ticketDoc.totalAmount)}
+                              onClick={() => approveSpend(ticketDoc.id, ticketDoc.userId, ticketDoc.totalAmount,ticketDoc.item.name)}
                               disabled={sending}
                             >
                               Approve
@@ -275,7 +277,7 @@ function Dashboard() {
                             <Button
                               variant="danger"
                               size="sm"
-                              onClick={() => rejectSpend(ticketDoc.id)}
+                              onClick={() => rejectSpend(ticketDoc.id,ticketDoc.item.name)}
                               disabled={sending}
                             >
                               Reject

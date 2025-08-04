@@ -16,6 +16,7 @@ const TransactionHistory = ({ userId, isAdmin }) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
         .sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
       setTransactions(data);
+      console.log("Transactions fetched:", data);
     };
     fetchData();
   }, [userId, isAdmin]);
@@ -28,6 +29,7 @@ const TransactionHistory = ({ userId, isAdmin }) => {
           <tr>
             <th>#</th>
             <th>Type</th>
+            <th>Item Name</th>
             <th>Amount</th>
             <th>Status</th>
             <th>Date</th>
@@ -38,6 +40,7 @@ const TransactionHistory = ({ userId, isAdmin }) => {
             <tr key={tx.id}>
               <td>{index + 1}</td>
               <td>{tx.type}</td>
+              <td>{tx.itemName ? tx.itemName : "N/A"}</td>
               <td>${tx.amount}</td>
               <td>
                 <span style={{ color: tx.status === "rejected" ? "red" : "green" }}>

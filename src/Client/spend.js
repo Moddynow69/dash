@@ -108,9 +108,9 @@ const Spend = ({ userId, balance }) => {
     </Button>
 
     <div>
-      <p>Subtotal: ₹{getSubtotal()}</p>
-      <p>Commission (4%): ₹{getCommission()}</p>
-      <h5>Total Deduction: ₹{getTotalAmount()}</h5>
+      <p>Subtotal: ${getSubtotal()}</p>
+      <p>Commission (4%): ${getCommission()}</p>
+      <h5>Total Deduction: ${getTotalAmount()}</h5>
     </div>
 
     <Button type="submit" variant="primary" className="mt-3"
