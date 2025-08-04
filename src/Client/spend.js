@@ -4,7 +4,7 @@ import { Form, Button } from "react-bootstrap";
 import { db } from "../firebase-config";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
-const Spend = ({ userId }) => {
+const Spend = ({ userId, balance }) => {
   const [items, setItems] = useState([{ name: "", price: 0 }]);
   const [loading, setLoading] = useState(false);
 
@@ -41,15 +41,23 @@ const Spend = ({ userId }) => {
       alert("Please fill all fields correctly.");
       return;
     }
-
+    if (getTotalAmount() <= 0) {
+      alert("Total amount must be greater than zero.");
+      return;
+    }
+    if (getTotalAmount() > balance) {
+      alert(`Total amount exceeds your balance of $${balance}.`);
+      return;
+    }
     setLoading(true);
+    items.forEach(async (item) => {
     try {
       await addDoc(collection(db, "spendTickets"), {
         userId,
-        items,
-        subtotal: getSubtotal(),
-        commission: getCommission(),
-        totalAmount: getTotalAmount(),
+        item,
+        subtotal: item.price,
+        commission: item.price * 0.04,
+        totalAmount: item.price + item.price * 0.04,
         status: "pending",
         createdAt: serverTimestamp(),
       });
@@ -57,7 +65,7 @@ const Spend = ({ userId }) => {
       setItems([{ name: "", price: 0 }]);
     } catch (err) {
       alert("Submission failed.");
-    }
+    }})
     setLoading(false);
   };
 

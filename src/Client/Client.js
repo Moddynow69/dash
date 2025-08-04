@@ -165,8 +165,8 @@ function Client() {
             </div>
           </Col>
         </Row>
-        <Spend userId={userId} />
-        <TransactionHistory userId={userId} isAdmin={false} />
+        <Spend userId={userId} balance={balance} />
+        <TransactionHistory userId={userId} isAdmin={false}  />
       </Container>
     </>
   );

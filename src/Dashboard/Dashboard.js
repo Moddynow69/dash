@@ -86,6 +86,7 @@ function Dashboard() {
     });
 
     gettickets();
+
   };
 
   useEffect(() => {
@@ -153,7 +154,7 @@ function Dashboard() {
           <Navbar.Brand href="#home">Admin Dashboard</Navbar.Brand>
         </Container>
         <Container>
-          <Navbar.Brand href="#home" style={{ cursor: "pointer" , backgroundColor:"White", color:"black" , borderRadius:"10px", paddingLeft:"30px", paddingRight:"30px", paddingBottom:"5px" , paddingTop:"5px"}} onClick={() => {
+          <Navbar.Brand href="#home" style={{ cursor: "pointer", backgroundColor: "White", color: "black", borderRadius: "10px", paddingLeft: "30px", paddingRight: "30px", paddingBottom: "5px", paddingTop: "5px" }} onClick={() => {
             localStorage.removeItem("isLoggedInAdmin");
             navigate("/");
           }}>
@@ -250,11 +251,11 @@ function Dashboard() {
                     <td>{index + 1}</td>
                     <td>{ticketDoc.userId}</td>
                     <td>
-                      {ticketDoc.items?.map((item, idx) => (
-                        <div key={idx}>
-                          {item.name} - ${item.price}
+                      {
+                        <div>
+                          {ticketDoc.item.name}
                         </div>
-                      ))}
+                      }
                     </td>
                     <td>${ticketDoc.subtotal}</td>
                     <td>${ticketDoc.commission}</td>
