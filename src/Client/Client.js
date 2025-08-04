@@ -92,7 +92,13 @@ function Client() {
           <Navbar.Brand href="/">
             Your Balance : <span>${balance}</span>
           </Navbar.Brand>
-
+          <Navbar.Brand href="#home" style={{ cursor: "pointer", backgroundColor: "White", color: "black", borderRadius: "10px", paddingLeft: "30px", paddingRight: "30px", paddingBottom: "5px", paddingTop: "5px" }} onClick={() => {
+            localStorage.removeItem("isLoggedIn");
+            localStorage.removeItem("userId");
+            navigate("/");
+          }}>
+            Logout
+          </Navbar.Brand>
         </Container>
       </Navbar>
       <Container style={{ width: "600px" }}>

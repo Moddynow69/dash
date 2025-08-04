@@ -15,6 +15,7 @@ function Dashboard() {
   const [tickets, setTickets] = useState([]);
   const [spendTickets, setSpendTickets] = useState([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
+  const [sending, setSending] = useState(false);
 
 
   useEffect(() => {
@@ -92,6 +93,7 @@ function Dashboard() {
   }, []);
 
   const approveSpend = async (id, userId, totalAmount) => {
+    setSending(true);
     const userDocRef = doc(db, "accounts", userId);
     const userDoc = await getDoc(userDocRef);
 
@@ -118,10 +120,12 @@ function Dashboard() {
       }
     }
     getSpendTickets();
+    setSending(false);
   };
 
 
   const rejectSpend = async (id) => {
+    setSending(true);
     const ticketRef = doc(db, "spendTickets", id);
     await updateDoc(ticketRef, { status: "rejected" });
 
@@ -138,6 +142,7 @@ function Dashboard() {
 
     alert("Spend request rejected.");
     getSpendTickets();
+    setSending(false);
   };
 
 
@@ -146,6 +151,14 @@ function Dashboard() {
       <Navbar bg="dark" variant="dark" className="header">
         <Container>
           <Navbar.Brand href="#home">Admin Dashboard</Navbar.Brand>
+        </Container>
+        <Container>
+          <Navbar.Brand href="#home" style={{ cursor: "pointer" , backgroundColor:"White", color:"black" , borderRadius:"10px", paddingLeft:"30px", paddingRight:"30px", paddingBottom:"5px" , paddingTop:"5px"}} onClick={() => {
+            localStorage.removeItem("isLoggedInAdmin");
+            navigate("/");
+          }}>
+            Logout
+          </Navbar.Brand>
         </Container>
       </Navbar>
 
@@ -253,7 +266,7 @@ function Dashboard() {
                         variant="success"
                         size="sm"
                         onClick={() => approveSpend(ticketDoc.id, ticketDoc.userId, ticketDoc.totalAmount)}
-                        disabled={ticketDoc.status === "approved" || ticketDoc.status === "rejected"}
+                        disabled={sending}
                       >
                         Approve
                       </Button>{" "}
@@ -261,7 +274,7 @@ function Dashboard() {
                         variant="danger"
                         size="sm"
                         onClick={() => rejectSpend(ticketDoc.id)}
-                        disabled={ticketDoc.status === "approved" || ticketDoc.status === "rejected"}
+                        disabled={sending}
                       >
                         Reject
                       </Button>

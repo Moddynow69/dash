@@ -19,7 +19,6 @@ const Login = () => {
         }
         if (userId === "Admin" && password === "pass@Admin123") {
             localStorage.setItem("isLoggedInAdmin", "true");
-            localStorage.setItem("userId", userId);
             navigate("/dashboard"); // Redirect to dashboard
         }
     };
