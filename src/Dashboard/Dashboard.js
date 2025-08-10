@@ -17,6 +17,7 @@ function Dashboard() {
   const [loadingTickets, setLoadingTickets] = useState(false);
   const [sending, setSending] = useState(false);
   const [users, setUsers] = useState([]);
+  const [qrUrl, setQrUrl] = useState("");
 
 
   const handleUpload = async (e) => {
@@ -31,6 +32,7 @@ function Dashboard() {
       alert("Upload failed");
       console.error(err);
     } finally {
+      getQr();
       setUploading(false);
     }
   };
@@ -101,8 +103,6 @@ function Dashboard() {
           status: "approved",
           createdAt: new Date(),
         });
-
-
         alert("Spend approved and amount deducted!");
       } else {
         alert("Insufficient balance.");
@@ -135,15 +135,35 @@ function Dashboard() {
     setSending(false);
   };
 
+  const getAllUsers = async () => {
+    const snapshot = await getDocs(collection(db, "accounts"));
+    const usersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setUsers(usersList);
+  };
+
+  const getQr = async () => {
+    const url = await QrService.fetchQrImage();
+    setQrUrl(url);
+  };
+
+  const getAllList = async () => {
+    gettickets();
+    getSpendTickets();
+    getAllUsers();
+    getQr();
+  };
+
   useEffect(() => {
     getSpendTickets();
     gettickets();
+    getQr();
     getAllUsers();
   }, []);
   setInterval(() => {
     gettickets();
     getSpendTickets();
     getAllUsers();
+    getQr();
     console.log(spendTickets, tickets);
   }, 300000);
 
@@ -154,17 +174,7 @@ function Dashboard() {
     }
   }, [navigate]);
 
-  const getAllList = async () => {
-    gettickets();
-    getSpendTickets();
-    getAllUsers();
-  };
 
-  const getAllUsers = async () => {
-    const snapshot = await getDocs(collection(db, "users"));
-    const usersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    setUsers(usersList);
-  };
 
   return (
     <>
@@ -185,9 +195,14 @@ function Dashboard() {
       <Container className="p-4 box mt-4">
         <Row>
           <Col>
-            <h5>Upload QR Code Image</h5>
-            <input type="file" accept="image/*" onChange={handleUpload} />
-            {uploading && <Spinner animation="border" size="sm" />}
+            <Row>
+              <h5>Upload QR Code Image</h5>
+              <input type="file" accept="image/*" onChange={handleUpload} />
+              {uploading && <Spinner animation="border" size="xl" />}
+            </Row>
+            <Row className="mt-3">
+              <img src={qrUrl} alt="Uploaded QR Code" style={{ width: "400px", height: "auto", marginTop: "10px" }} />
+            </Row>
           </Col>
           <Col>
             <h5>All Users Details</h5>
@@ -195,19 +210,16 @@ function Dashboard() {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Actions</th>
+                  <th>UserID</th>
+                  <th>Amount</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((user, index) => (
                   <tr key={user.id}>
                     <td>{index + 1}</td>
-                    <td>{user.name}</td>
-                    <td>{user.email}</td>
-                    <td>{user.role}</td>
+                    <td>{user.id}</td>
+                    <td>{user.amount}</td>
                   </tr>
                 ))}
               </tbody>
