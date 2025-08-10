@@ -2,7 +2,7 @@
 import { db } from "../firebase-config";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 
-const imgbbApiKey = "d7478228aeaffe11bc627055c6e5b3c0"; // Replace with your actual API key
+const imgbbApiKey = process.env.REACT_APP_IMGBB_API_KEY;
 
 const uploadQrImage = async (file) => {
   const formData = new FormData();

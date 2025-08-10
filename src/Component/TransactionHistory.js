@@ -16,11 +16,22 @@ const TransactionHistory = ({ userId, isAdmin }) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
         .sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
       setTransactions(data);
-      console.log("Transactions fetched:", data);
     };
     fetchData();
   }, [userId, isAdmin]);
-
+  setInterval(() => {
+    const fetchData = async () => {
+      let q = collection(db, "transactions");
+      if (!isAdmin) {
+        q = query(q, where("userId", "==", userId));
+      }
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        .sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
+      setTransactions(data);
+    };
+    fetchData();
+  }, 20000);
   return (
     <div className="mt-4">
       <h5>{isAdmin ? "All" : "Your"} Transaction History</h5>
