@@ -10,8 +10,6 @@ const Login = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        console.log("userId:", userId);
-        console.log("Password:", password);
         if (userId === "P0103" && password === "pass@123") {
             localStorage.setItem("isLoggedIn", "true");
             localStorage.setItem("userId", userId);

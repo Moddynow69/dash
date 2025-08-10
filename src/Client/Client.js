@@ -69,6 +69,14 @@ function Client() {
           paymentProof: proofUrl,
           createdAt: serverTimestamp(),
         });
+        await addDoc(collection(db, "transactions"), {
+          userId,
+          type: "add",
+          itemName: "Deposit",
+          amount: Number(amount),
+          status: "pending",
+          createdAt: new Date(),
+        });
 
         setMessage({ error: false, msg: "Ticket raised. Money will be added after verification." });
         setTransactionId("");
@@ -101,10 +109,11 @@ function Client() {
           </Navbar.Brand>
         </Container>
       </Navbar>
-      <Container style={{ maxWidth: "600px", marginTop: "20px" }}>
+      <Container style={{ marginTop: "20px" }}>
         <Row>
           <Col>
-            <div className="p-4 box">
+            <div className="p-4 box mt-5">
+              <h4 className="mb-4">Add Money</h4>
               {message?.msg && (
                 <Alert
                   variant={message?.error ? "danger" : "success"}
@@ -173,10 +182,13 @@ function Client() {
               </Form>
             </div>
           </Col>
+          <Col>
+            <Spend userId={userId} balance={balance} />
+          </Col>
         </Row>
-
-        <Spend userId={userId} />
-        <TransactionHistory userId={userId} isAdmin={false} />
+        <div className="p-4 box mt-5">
+          <TransactionHistory userId={userId} isAdmin={false} />
+        </div>
       </Container>
 
     </>

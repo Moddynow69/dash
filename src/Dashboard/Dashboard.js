@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Table, Button, Container, Navbar, Row, Col, Spinner } from "react-bootstrap";
+import { Table, Button, Container, Navbar, Row, Spinner, Col } from "react-bootstrap";
 import QrService from "../services/qr.services";
 import TicketDataSerivce from "../services/ticket.services";
 import "../App.css";
@@ -16,7 +16,7 @@ function Dashboard() {
   const [spendTickets, setSpendTickets] = useState([]);
   const [loadingTickets, setLoadingTickets] = useState(false);
   const [sending, setSending] = useState(false);
-
+  const [users, setUsers] = useState([]);
 
 
   const handleUpload = async (e) => {
@@ -55,6 +55,7 @@ function Dashboard() {
 
 
   const deleteHandler = async (id, userId, amount) => {
+    setSending(true);
     if (userId && amount) {
       const userDocRef = doc(db, "accounts", userId);
       const userDoc = await getDoc(userDocRef);
@@ -75,6 +76,7 @@ function Dashboard() {
       createdAt: new Date(),
     });
     gettickets();
+    setSending(false);
   };
 
 
@@ -136,10 +138,12 @@ function Dashboard() {
   useEffect(() => {
     getSpendTickets();
     gettickets();
+    getAllUsers();
   }, []);
   setInterval(() => {
     gettickets();
     getSpendTickets();
+    getAllUsers();
     console.log(spendTickets, tickets);
   }, 300000);
 
@@ -149,6 +153,19 @@ function Dashboard() {
       navigate("/");
     }
   }, [navigate]);
+
+  const getAllList = async () => {
+    gettickets();
+    getSpendTickets();
+    getAllUsers();
+  };
+
+  const getAllUsers = async () => {
+    const snapshot = await getDocs(collection(db, "users"));
+    const usersList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    setUsers(usersList);
+  };
+
   return (
     <>
       <Navbar bg="dark" variant="dark" className="header">
@@ -165,25 +182,49 @@ function Dashboard() {
         </Container>
       </Navbar>
 
-      <Container className="my-4">
-        <h5>Upload QR Code Image</h5>
-        <input type="file" accept="image/*" onChange={handleUpload} />
-        {uploading && <Spinner animation="border" size="sm" />}
+      <Container className="p-4 box mt-4">
+        <Row>
+          <Col>
+            <h5>Upload QR Code Image</h5>
+            <input type="file" accept="image/*" onChange={handleUpload} />
+            {uploading && <Spinner animation="border" size="sm" />}
+          </Col>
+          <Col>
+            <h5>All Users Details</h5>
+            <Table striped bordered hover size="sm">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user, index) => (
+                  <tr key={user.id}>
+                    <td>{index + 1}</td>
+                    <td>{user.name}</td>
+                    <td>{user.email}</td>
+                    <td>{user.role}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </Col>
+        </Row>
       </Container>
 
       <Container>
+        <div className="p-4 mt-4 flex flex-row justify-center items-center">
+          <Button variant="dark edit" onClick={getAllList} disabled={loadingTickets || sending}>
+            Refresh All Lists
+          </Button>
+        </div>
         <Row>
-          <Col>
-            <div className="mb-2">
-              <Button variant="dark edit" onClick={gettickets}>
-                Refresh List
-              </Button>
-            </div>
-            {loadingTickets && (
-              <div className="my-2">
-                <Spinner animation="border" size="sm" /> Loading tickets...
-              </div>
-            )}
+          <div className="p-4 box mt-4">
+            <h5>Add Money Requests</h5>
             <Table striped bordered hover size="sm">
               <thead>
                 <tr>
@@ -211,6 +252,7 @@ function Dashboard() {
                           variant="secondary"
                           className="edit"
                           onClick={() => deleteHandler(doc.id, doc.userId, doc.amount)}
+                          disabled={sending}
                         >
                           Accept
                         </Button>
@@ -218,6 +260,7 @@ function Dashboard() {
                           variant="danger"
                           className="delete"
                           onClick={() => deleteHandler(doc.id, null, null)}
+                          disabled={sending}
                         >
                           Reject
                         </Button>
@@ -227,71 +270,75 @@ function Dashboard() {
                 })}
               </tbody>
             </Table>
-
-            <div className="p-4 box mt-4">
-
-              <h5>Spend Requests</h5>
-              <Table striped bordered hover size="sm">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Account Name</th>
-                    <th>Items</th>
-                    <th>Subtotal</th>
-                    <th>Commission</th>
-                    <th>Total</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {spendTickets
-                    .filter(ticket => ticket.status === "pending")
-                    .map((ticketDoc, index) => {
-                      return (
-                        <tr key={ticketDoc.id}>
-                          <td>{index + 1}</td>
-                          <td>{typeof (ticketDoc.userId) === "string" ? ticketDoc.userId : ticketDoc.userId.userId}</td>
-                          <td>
-                            {ticketDoc.item && (
-                              <div>
-                                {ticketDoc.item.name}
-                              </div>
-                            )}
-                          </td>
-                          <td>${ticketDoc.subtotal}</td>
-                          <td>${ticketDoc.commission}</td>
-                          <td>${ticketDoc.totalAmount}</td>
-                          <td>{ticketDoc.status}</td>
-                          <td>{ticketDoc.createdAt?.toDate().toLocaleString() || "—"}</td>
-                          <td>
-                            <Button
-                              variant="success"
-                              size="sm"
-                              onClick={() => approveSpend(ticketDoc.id, ticketDoc.userId, ticketDoc.totalAmount,ticketDoc.item.name)}
-                              disabled={sending}
-                            >
-                              Approve
-                            </Button>{" "}
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              onClick={() => rejectSpend(ticketDoc.id,ticketDoc.item.name)}
-                              disabled={sending}
-                            >
-                              Reject
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </Table>
-            </div>
-          </Col>
+          </div>
         </Row>
-        <TransactionHistory isAdmin={true} />
+        <Row>
+          <div className="p-4 box mt-4">
+            <h5>Spend Requests</h5>
+            <Table striped bordered hover size="sm">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Account Name</th>
+                  <th>Items</th>
+                  <th>Subtotal</th>
+                  <th>Commission</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {spendTickets
+                  .filter(ticket => ticket.status === "pending")
+                  .map((ticketDoc, index) => {
+                    return (
+                      <tr key={ticketDoc.id}>
+                        <td>{index + 1}</td>
+                        <td>{typeof (ticketDoc.userId) === "string" ? ticketDoc.userId : ticketDoc.userId.userId}</td>
+                        <td>
+                          {ticketDoc.item && (
+                            <div>
+                              {ticketDoc.item.name}
+                            </div>
+                          )}
+                        </td>
+                        <td>${ticketDoc.subtotal}</td>
+                        <td>${ticketDoc.commission}</td>
+                        <td>${ticketDoc.totalAmount}</td>
+                        <td>{ticketDoc.status}</td>
+                        <td>{ticketDoc.createdAt?.toDate().toLocaleString() || "—"}</td>
+                        <td>
+                          <Button
+                            variant="success"
+                            size="sm"
+                            onClick={() => approveSpend(ticketDoc.id, ticketDoc.userId, ticketDoc.totalAmount, ticketDoc.item.name)}
+                            disabled={sending}
+                          >
+                            Approve
+                          </Button>{" "}
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => rejectSpend(ticketDoc.id, ticketDoc.item.name)}
+                            disabled={sending}
+                          >
+                            Reject
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </Table>
+          </div>
+        </Row>
+        <Row>
+          <div className="p-4 box mt-4">
+            <TransactionHistory isAdmin={true} />
+          </div>
+        </Row>
       </Container>
     </>
   );
