@@ -62,20 +62,21 @@ function Client() {
         });
         const data = await res.json();
         const proofUrl = data?.data?.url;
-        await addDoc(collection(db, "tickets"), {
-          userId,
-          transactionId,
-          amount,
-          paymentProof: proofUrl,
-          createdAt: serverTimestamp(),
-        });
-        await addDoc(collection(db, "transactions"), {
+        const doc = await addDoc(collection(db, "transactions"), {
           userId,
           type: "add",
           itemName: "Deposit",
           amount: Number(amount),
           status: "pending",
           createdAt: new Date(),
+        });
+        await addDoc(collection(db, "tickets"), {
+          userId,
+          transactionId,
+          amount,
+          paymentProof: proofUrl,
+          createdAt: serverTimestamp(),
+          internalTicketId: doc.id,
         });
 
         setMessage({ error: false, msg: "Ticket raised. Money will be added after verification." });

@@ -54,6 +54,14 @@ const Spend = ({ userId, balance }) => {
     setLoading(true);
     items.forEach(async (item) => {
       try {
+        const doc = await addDoc(collection(db, "transactions"), {
+          userId,
+          type: "spend",
+          itemName: item.name,
+          amount: item.price + item.price * 0.04, // including commission
+          status: "pending",
+          createdAt: new Date(),
+        });
         await addDoc(collection(db, "spendTickets"), {
           userId: userId,
           item,
@@ -62,14 +70,7 @@ const Spend = ({ userId, balance }) => {
           totalAmount: item.price + item.price * 0.04,
           status: "pending",
           createdAt: serverTimestamp(),
-        });
-        await addDoc(collection(db, "transactions"), {
-          userId,
-          type: "spend",
-          itemName: item.name,
-          amount: item.price + item.price * 0.04, // including commission
-          status: "pending",
-          createdAt: new Date(),
+          internalTicketId: doc.id,
         });
       } catch (err) {
         alert("Submission failed.");
