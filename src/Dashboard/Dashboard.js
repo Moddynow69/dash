@@ -56,7 +56,7 @@ function Dashboard() {
   };
 
 
-  const deleteHandler = async (id, userId, amount) => {
+  const deleteHandler = async (id, userId, amount, internalTicketId) => {
     setSending(true);
     if (userId && amount) {
       const userDocRef = doc(db, "accounts", userId);
@@ -70,19 +70,25 @@ function Dashboard() {
     }
 
     await TicketDataSerivce.remove(id);
-    await addDoc(collection(db, "transactions"), {
-      userId,
-      type: "add",
-      amount: Number(amount),
-      status: userId && amount ? "approved" : "rejected",
-      createdAt: new Date(),
-    });
+
+    if (internalTicketId) {
+      await updateDoc(doc(db, "transactions", internalTicketId), { status: userId && amount ? "approved" : "rejected" });
+    }
+    else {
+      await addDoc(collection(db, "transactions"), {
+        userId,
+        type: "add",
+        amount: Number(amount),
+        status: userId && amount ? "approved" : "rejected",
+        createdAt: new Date(),
+      });
+    }
     gettickets();
     setSending(false);
   };
 
 
-  const approveSpend = async (id, userId, totalAmount, itemName) => {
+  const approveSpend = async (id, userId, totalAmount, itemName, internalTicketId) => {
     setSending(true);
     const userDocRef = doc(db, "accounts", userId);
     const userDoc = await getDoc(userDocRef);
@@ -94,15 +100,19 @@ function Dashboard() {
 
         const ticketRef = doc(db, "spendTickets", id);
         await updateDoc(ticketRef, { status: "approved" });
-
-        await addDoc(collection(db, "transactions"), {
-          userId,
-          type: "spend",
-          itemName: itemName,
-          amount: totalAmount,
-          status: "approved",
-          createdAt: new Date(),
-        });
+        if (internalTicketId) {
+          await updateDoc(doc(db, "transactions", internalTicketId), { status: "approved" });
+        }
+        else {
+          await addDoc(collection(db, "transactions"), {
+            userId,
+            type: "spend",
+            itemName: itemName,
+            amount: totalAmount,
+            status: "approved",
+            createdAt: new Date(),
+          });
+        }
         alert("Spend approved and amount deducted!");
       } else {
         alert("Insufficient balance.");
@@ -113,23 +123,24 @@ function Dashboard() {
   };
 
 
-  const rejectSpend = async (id, itemName) => {
+  const rejectSpend = async (id, itemName, internalTicketId) => {
     setSending(true);
-    const ticketRef = doc(db, "spendTickets", id);
-    await updateDoc(ticketRef, { status: "rejected" });
-
-    const ticketSnapshot = await getDoc(ticketRef);
+    await updateDoc(doc(db, "spendTickets", id), { status: "rejected" });
+    const ticketSnapshot = await getDoc(doc(db, "spendTickets", id));
     const data = ticketSnapshot.data();
-
-    await addDoc(collection(db, "transactions"), {
-      userId: data.userId,
-      type: "spend",
-      itemName: itemName,
-      amount: data.totalAmount,
-      status: "rejected",
-      createdAt: new Date(),
-    });
-
+    if (internalTicketId) {
+      await updateDoc(doc(db, "transactions", internalTicketId), { status: "rejected" });
+    }
+    else {
+      await addDoc(collection(db, "transactions"), {
+        userId: data.userId,
+        type: "spend",
+        itemName: itemName,
+        amount: data.totalAmount,
+        status: "rejected",
+        createdAt: new Date(),
+      });
+    }
     alert("Spend request rejected.");
     getSpendTickets();
     setSending(false);
@@ -263,7 +274,7 @@ function Dashboard() {
                         <Button
                           variant="secondary"
                           className="edit"
-                          onClick={() => deleteHandler(doc.id, doc.userId, doc.amount)}
+                          onClick={() => deleteHandler(doc.id, doc.userId, doc.amount, doc.internalTicketId)}
                           disabled={sending}
                         >
                           Accept
@@ -271,7 +282,7 @@ function Dashboard() {
                         <Button
                           variant="danger"
                           className="delete"
-                          onClick={() => deleteHandler(doc.id, null, null)}
+                          onClick={() => deleteHandler(doc.id, null, null, doc.internalTicketId)}
                           disabled={sending}
                         >
                           Reject
@@ -325,7 +336,7 @@ function Dashboard() {
                           <Button
                             variant="success"
                             size="sm"
-                            onClick={() => approveSpend(ticketDoc.id, ticketDoc.userId, ticketDoc.totalAmount, ticketDoc.item.name)}
+                            onClick={() => approveSpend(ticketDoc.id, ticketDoc.userId, ticketDoc.totalAmount, ticketDoc.name, ticketDoc.internalTicketId)}
                             disabled={sending}
                           >
                             Approve
@@ -333,7 +344,7 @@ function Dashboard() {
                           <Button
                             variant="danger"
                             size="sm"
-                            onClick={() => rejectSpend(ticketDoc.id, ticketDoc.item.name)}
+                            onClick={() => rejectSpend(ticketDoc.id, ticketDoc.item.name, ticketDoc.internalTicketId)}
                             disabled={sending}
                           >
                             Reject
